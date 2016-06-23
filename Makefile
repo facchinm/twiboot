@@ -8,10 +8,9 @@ TARGET = twiboot
 SOURCE = $(wildcard *.c)
 
 # select MCU
-MCU = atmega88
+MCU = atmega328p
 
-AVRDUDE_PROG := -c avr910 -b 115200 -P /dev/ttyUSB0
-#AVRDUDE_PROG := -c dragon_isp -P usb
+AVRDUDE_PROG := -c avrispmkII -P usb
 
 # ---------------------------------------------------------------------------
 
