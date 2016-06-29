@@ -69,16 +69,14 @@
 #define TIMER_RELOAD		(0xFF - 195)
 
 /* 40 * 25ms */
-#define TIMEOUT			40
+#define TIMEOUT			150
 
 #if LED_SUPPORT
-#define LED_INIT()		DDRB = ((1<<PORTB4) | (1<<PORTB5))
-#define LED_RT_ON()		PORTB |= (1<<PORTB4)
-#define LED_RT_OFF()		PORTB &= ~(1<<PORTB4)
-#define LED_GN_ON()		PORTB |= (1<<PORTB5)
-#define LED_GN_OFF()		PORTB &= ~(1<<PORTB5)
-#define LED_GN_TOGGLE()		PORTB ^= (1<<PORTB5)
-#define LED_OFF()		PORTB = 0x00
+#define LED_INIT()		DDRD = (1<<PORTD6)
+#define LED_GN_OFF()		PORTD |= (1<<PORTD6)
+#define LED_GN_ON()		PORTD &= ~(1<<PORTD6)
+#define LED_GN_TOGGLE()		PORTD ^= (1<<PORTD6)
+#define LED_OFF()		LED_GN_OFF();
 #else
 #define LED_INIT()
 #define LED_RT_ON()
@@ -171,7 +169,7 @@ const static uint8_t chipinfo[8] = {
 };
 
 /* wait 40 * 25ms = 1s */
-static uint8_t boot_timeout = TIMEOUT;
+volatile static uint8_t boot_timeout = TIMEOUT;
 volatile static uint8_t cmd = CMD_WAIT;
 
 /* flash buffer */
@@ -236,12 +234,12 @@ ISR(TWI_vect)
 	static uint8_t bcnt;
 	uint8_t data;
 	uint8_t ack = (1<<TWEA);
+	boot_timeout = TIMEOUT;
 
 	switch (TWSR & 0xF8) {
 	/* SLA+W received, ACK returned -> receive data and ACK */
 	case 0x60:
 		bcnt = 0;
-		LED_RT_ON();
 		TWCR |= (1<<TWINT) | (1<<TWEA);
 		break;
 
@@ -341,7 +339,6 @@ ISR(TWI_vect)
 	/* SLA+R received, ACK returned -> send data */
 	case 0xA8:
 		bcnt = 0;
-		LED_RT_ON();
 
 	/* prev. SLA+R, data sent, ACK returned -> send data */
 	case 0xB8:
@@ -377,7 +374,6 @@ ISR(TWI_vect)
 	case 0xA0:
 	/* data sent, NACK returned */
 	case 0xC0:
-		LED_RT_OFF();
 		TWCR |= (1<<TWINT) | (1<<TWEA);
 		break;
 
@@ -394,7 +390,7 @@ ISR(TIMER0_OVF_vect)
 	TCNT0 = TIMER_RELOAD;
 
 	/* blink LED while running */
-	LED_GN_TOGGLE();
+	//LED_GN_TOGGLE();
 
 	/* count down for app-boot */
 	if (boot_timeout > 1)
@@ -419,15 +415,14 @@ void disable_wdt_timer(void)
 	MCUSR = 0;
 	WDTCSR = (1<<WDCE) | (1<<WDE);
 	WDTCSR = (0<<WDE);
+	LED_INIT();
+	LED_GN_ON();
 }
 #endif
 
 int main(void) __attribute__ ((noreturn));
 int main(void)
 {
-	LED_INIT();
-	LED_GN_ON();
-
 	/* move interrupt-vectors to bootloader */
 	/* timer0: running with F_CPU/1024, OVF interrupt */
 #if defined (__AVR_ATmega8__)
