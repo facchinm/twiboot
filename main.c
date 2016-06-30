@@ -449,6 +449,7 @@ int main(void)
 
 	/* Disable TWI but keep address! */
 	TWCR = 0x00;
+	TWAR = 0x00;
 
 	/* disable timer0 */
 	/* move interrupt vectors back to application */
